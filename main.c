@@ -135,7 +135,6 @@ int starty_map_draw = 0, startx_map_draw = 0;
 int floor_number = 0;
 int been[map_height][map_width];
 int stairs_room, stairs_location[2][4][2];
-int downstairs = 0;
 int treasure_room, show_map = 0;
 int message_row;
 int pick_up = 1;
@@ -143,19 +142,36 @@ int last_shot_dir = -1;
 int this_room_number[5] = {0, 0, 0, 0, 0};
 int terminal_x_size, terminal_y_size;
 int first_step = 1;
-int is_message[10] = {0, 0, 0, 0, 0};
+int is_message[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 time_t messag_time[5], pass_timer, change_pass_timer, last_attack, heal_interval;
-char flor = '.', door = '+', wall[2] = {'_', '|'}, nothing = ' ', corridor = '#', trap = '^', used_trap = 'a', show_trap = 'b', hidden_door = '?';
+char flor = '.', door = '+', wall[2] = {'_', '|'}, nothing = '-', corridor = '#', trap = '^', used_trap = 'a', show_trap = 'b', hidden_door = '?';
 char found_door = 'e', stairs = '<', hero_char = 'H';
 char pillar = 'O', gold = 'g', black_gold = 'B', pass_door = '@', opened_pass_door = 'd', pass_door_key = '&', master_key = 'K';
 char deamon = 'D', fire_breathing = 'F', giant = 'G', snake = 'S', undeed = 'U', mace = 'f', dagger = 'k', magic_wand = 'h', normal_arrow = 'i', sword = 'j';
-char dagger_floor = 1, magic_wand_floor = 2, normal_arrow_floor = 3, health_spell = 4, speed_spell = 5, damage_spell = 6, regular_food = 7, excellent_food = 8, magic_food = 9, spoiled_food = 10;
-char treasure_char = 11;
+char dagger_floor = 'o', magic_wand_floor = 'p', normal_arrow_floor = 'q', health_spell = 'r', speed_spell = 's', damage_spell = 't', regular_food = 'u', excellent_food = 'v', magic_food = 'w', spoiled_food = 'x';
+char treasure_char = 'y';
 wchar_t ucorridor = L'░', uflor = L'∘', udoor = L'+', unothing = L' ', utrap = L'^', uhidden_door = L'?', uwall[2] = {L'━', L'┃'};
 wchar_t ustairs = L'⇓', uhero_char = L'🦸', upillar = L'O', ugold = L'💰', ublack_gold = L'🛢', upass_door = L'@', upass_door_key = L'🗝', umaster_key = L'△';
 wchar_t umagic_wand = L'✨', umace = L'⚒', usword = L'⚔', udagger = L'🗡', unormal_arrow = L'🏹', uhealth_spell = L'🏥', uspeed_spell = L'⚡', udamage_spell = L'🔥';
 wchar_t uregular_food = L'🍞', uexcellant_food = L'🍗', umagic_food = L'🧪', utreasure_char = L'🏆';
 int game_is_running = 1;
+
+// save
+// load
+// profile
+// leaderboard
+// print hhealth
+// save nadashte bashe
+
+// char ha adad nabashan ta print beshan
+
+// load game dobare ba new game check beshe
+
+// strtok \n beshe
+
+// define game and hero
+
+// stairs_location[2][4][2];
 
 typedef struct food
 {
@@ -214,6 +230,9 @@ typedef struct hero
 
 } hero_struct;
 
+// hero_struct hero;
+// game_struct game;
+
 int random_number(int min, int max);
 int can_go(int x, int y, game_struct *game, int fl);
 int remaining_dir(int a, int b, int c);
@@ -224,6 +243,10 @@ void attron_theme_item(char item, char first, int show_map);
 void attron_theme_room(char theme[]);
 void new_game();
 void show_message(char message[], game_struct *game, hero_struct *hero);
+void end_game(game_struct *game, hero_struct *hero, int win);
+void food_step_decrease(hero_struct *hero);
+int move_hero(game_struct *game, hero_struct *hero, int c);
+void run_game(game_struct *game, hero_struct *hero);
 
 void print_unicode(int y, int x, char c)
 {
@@ -1785,6 +1808,784 @@ void end_game(game_struct *game, hero_struct *hero, int win)
     game_is_running = 0;
 }
 
+void print_hero(hero_struct *hero, FILE *file)
+{
+    fprintf(file, "health:%d\n", hero->health);
+    fprintf(file, "master_key_number:%d\n", hero->master_key_number);
+    fprintf(file, "broken_key_number:%d\n", hero->broken_key_number);
+    fprintf(file, "x:%d\n", hero->x);
+    fprintf(file, "y:%d\n", hero->y);
+    fprintf(file, "mace_number:%d\n", hero->mace_number);
+    fprintf(file, "dagger_number:%d\n", hero->dagger_number);
+    fprintf(file, "sword_number:%d\n", hero->sword_number);
+    fprintf(file, "magic_wand_number:%d\n", hero->magic_wand_number);
+    fprintf(file, "normal_arrow_number:%d\n", hero->normal_arrow_number);
+    fprintf(file, "health_spell_number:%d\n", hero->health_spell_number);
+    fprintf(file, "speed_spell_number:%d\n", hero->speed_spell_number);
+    fprintf(file, "damage_spell_number:%d\n", hero->damage_spell_number);
+    fprintf(file, "regular_food_number:%d\n", hero->regular_food_number);
+    fprintf(file, "spoiled_food_number:%d\n", hero->spoiled_food_number);
+    fprintf(file, "excellent_food_number:%d\n", hero->excellent_food_number);
+    fprintf(file, "magic_food_number:%d\n", hero->magic_food_number);
+    fprintf(file, "weapon:%c\n", hero->weapon);
+    fprintf(file, "step:%d\n", hero->step);
+    fprintf(file, "health_step:%d\n", hero->health_step);
+    fprintf(file, "damage_step:%d\n", hero->damage_step);
+    fprintf(file, "speed_step:%d\n", hero->speed_step);
+    fprintf(file, "hunger:%d\n", hero->hunger);
+    fprintf(file, "score:%d\n", hero->gold * 10);
+    fprintf(file, "gold:%d\n", hero->gold);
+    for (int i = 0; i < hero->regular_food_number + hero->spoiled_food_number + hero->excellent_food_number + hero->magic_food_number; i++)
+        fprintf(file, "food:%c %d\n", hero->foods[i].name, hero->foods[i].step_until_change);
+}
+
+void print_enemy(enemy_struct *enemy, FILE *file)
+{
+    fprintf(file, "enemy_char:%c\n", enemy->enemy_char);
+    fprintf(file, "enemy_name:%s\n", enemy->enemy_name);
+    fprintf(file, "damage:%d\n", enemy->damage);
+    fprintf(file, "mov_left:%d\n", enemy->mov_left);
+    fprintf(file, "loc:%d %d\n", enemy->loc[0], enemy->loc[1]);
+    fprintf(file, "health:%d\n", enemy->health);
+    fprintf(file, "\n");
+}
+
+void print_room(room_struct *room, FILE *file)
+{
+    fprintf(file, "starty:%d\n", room->starty);
+    fprintf(file, "startx:%d\n", room->startx);
+    fprintf(file, "height:%d\n", room->height);
+    fprintf(file, "width:%d\n", room->width);
+    fprintf(file, "door_number:%d\n", room->door_number);
+    for (int i = 0; i < room->door_number; i++)
+    {
+        fprintf(file, "%d %d\n", room->door[i][0], room->door[i][1]);
+        fprintf(file, "%d\n", room->door_side[i]);
+    }
+    fprintf(file, "show:%d\n", room->show);
+    fprintf(file, "door_password:%d\n", room->door_password);
+    fprintf(file, "change_door_password:%d\n", room->change_door_password);
+    fprintf(file, "theme:%s\n", room->theme);
+    fprintf(file, "enemy_exist:%d\n", room->enemy.exist);
+    if (room->enemy.exist)
+        print_enemy(&room->enemy, file);
+    fprintf(file, "\n");
+}
+
+void save_game(game_struct *game, hero_struct *hero)
+{
+    show_message(user_username, game, hero);
+    FILE *file2 = fopen("data.txt", "r+");
+    char all_data[1000];
+    char line_data[500];
+    while (fgets(line_data, 500, file2))
+    {
+        int score, gold, number_of_games;
+        char username_line[100], password_line[100], email_line[100];
+        sscanf(line_data, "%s %s %s %d %d %d", username_line, password_line, email_line, &score, &gold, &number_of_games);
+        if (strcmp(username_line, user_username) == 0)
+        {
+            score += hero->gold * 10;
+            gold += hero->gold;
+            number_of_games++;
+            sprintf(line_data, "%s %s %s %d %d %d\n", username_line, password_line, email_line, score, gold, number_of_games);
+        }
+        strcat(all_data, line_data);
+    }
+    fclose(file2);
+    file2 = fopen("data.txt", "w");
+    fprintf(file2, "%s", all_data);
+    fclose(file2);
+
+    char file_loc[100];
+    sprintf(file_loc, "saves/%s.txt", user_username);
+    FILE *file = fopen(file_loc, "w");
+    fprintf(file, "difficulty:%d\n", difficulty);
+    fprintf(file, "hero_color:%s\n", hero_color);
+    fprintf(file, "map\n");
+    for (int i = 0; i < 5; i++)
+    {
+        for (int j = 0; j < map_height; j++)
+        {
+            for (int h = 0; h < map_width; h++)
+                fprintf(file, "%c", game->map[i][j][h]);
+            fprintf(file, "\n");
+        }
+        fprintf(file, "\n");
+    }
+    fprintf(file, "show_map\n");
+    for (int i = 0; i < 5; i++)
+    {
+        for (int j = 0; j < map_height; j++)
+        {
+            for (int h = 0; h < map_width; h++)
+                fprintf(file, "%c", game->show_map[i][j][h]);
+            fprintf(file, "\n");
+        }
+        fprintf(file, "\n");
+    }
+    fprintf(file, "under_weapon\n");
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < map_height; j++)
+        {
+            for (int h = 0; h < map_width; h++)
+                fprintf(file, "%c", game->under_weapon[i][j][h]);
+            fprintf(file, "\n");
+        }
+        fprintf(file, "\n");
+    }
+    fprintf(file, "room_number\n");
+    for (int i = 0; i < 4; i++)
+        fprintf(file, "%d ", game->room_number[i]);
+    fprintf(file, "\n");
+    fprintf(file, "room\n");
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < game->room_number[i]; j++)
+            print_room(&game->room[i][j], file);
+    }
+
+    fprintf(file, "treasure_room\n");
+    fprintf(file, "starty:%d\n", game->treasure_room.starty);
+    fprintf(file, "startx:%d\n", game->treasure_room.startx);
+    fprintf(file, "height:%d\n", game->treasure_room.height);
+    fprintf(file, "width:%d\n", game->treasure_room.width);
+    fprintf(file, "show:%d\n", game->treasure_room.show);
+    fprintf(file, "theme:%s\n", game->treasure_room.theme);
+    fprintf(file, "\n");
+
+    fprintf(file, "all_enemy_number:%d\n", game->all_enemy_number);
+    fprintf(file, "treasure_enemy_number:%d\n", game->treasure_enemy_number);
+    fprintf(file, "treasure_enemy\n");
+    for (int i = 0; i < game->all_enemy_number; i++)
+    {
+        if (game->treasure_enemy[i].exist)
+            print_enemy(&game->treasure_enemy[i], file);
+    }
+
+    fprintf(file, "floor_number:%d\n", floor_number);
+    // fprintf(file, "startx_map_draw:%d\n", startx_map_draw);
+    // fprintf(file, "starty_map_draw:%d\n", starty_map_draw);
+
+    print_hero(hero, file);
+
+    fprintf(file, "this_room_number\n");
+    for (int i = 0; i < 4; i++)
+        fprintf(file, "%d\n", this_room_number[i]);
+
+    fprintf(file, "show_map:%d\n", show_map);
+    fprintf(file, "pick_up:%d\n", pick_up);
+    fprintf(file, "last_shot_dir:%d\n", last_shot_dir);
+    fprintf(file, "first_step:%d\n", first_step);
+    fprintf(file, "end");
+
+    fclose(file);
+    show_message("Game saved!", game, hero);
+}
+
+// void load_game(game_struct *game, hero_struct *hero)
+// {
+//     char file_loc[100];
+//     sprintf(file_loc, "saves/%s.txt", user_username);
+//     FILE *file = fopen(file_loc, "r");
+//     char line[500];
+//     if (!file)
+//     {
+//         perror("Failed to open file");
+//         return;
+//     }
+//     while (fgets(line, 500, file))
+//     {
+//         if (strcmp(line, "end") == 0)
+//             break;
+//         char *token = strtok(line, ":");
+//         if (strcmp(token, "difficulty") == 0)
+//             difficulty = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "hero_color") == 0)
+//             strcpy(hero_color, atoi(strtok(NULL, "\n")));
+//         else if (strcmp(token, "map") == 0)
+//         {
+//             for (int i = 0; i < 5; i++)
+//             {
+//                 for (int j = 0; j < map_height; j++)
+//                 {
+//                     fgets(line, 500, file);
+//                     for (int h = 0; h < map_width; h++)
+//                         game->map[i][j][h] = line[h];
+//                 }
+//                 fgets(line, 500, file);
+//             }
+//         }
+//         else if (strcmp(token, "show_map") == 0)
+//         {
+//             for (int i = 0; i < 5; i++)
+//             {
+//                 for (int j = 0; j < map_height; j++)
+//                 {
+//                     fgets(line, 500, file);
+//                     for (int h = 0; h < map_width; h++)
+//                         game->show_map[i][j][h] = line[h];
+//                 }
+//                 fgets(line, 500, file);
+//             }
+//         }
+//         else if (strcmp(token, "under_weapon") == 0)
+//         {
+//             for (int i = 0; i < 4; i++)
+//             {
+//                 for (int j = 0; j < map_height; j++)
+//                 {
+//                     fgets(line, 500, file);
+//                     for (int h = 0; h < map_width; h++)
+//                         game->under_weapon[i][j][h] = line[h];
+//                 }
+//                 fgets(line, 500, file);
+//             }
+//         }
+//         else if (strcmp(token, "room_number") == 0)
+//         {
+//             fgets(line, 500, file);
+//             for (int i = 0; i < 4; i++)
+//                 game->room_number[i] = atoi(strtok(line, " "));
+//         }
+//         else if (strcmp(token, "room") == 0)
+//         {
+//             for (int i = 0; i < 4; i++)
+//             {
+//                 for (int j = 0; j < game->room_number[i]; j++)
+//                 {
+//                     fgets(line, 500, file);
+//                     while (fgets(line, 500, file))
+//                     {
+//                         if (strcmp(line, "\n") == 0)
+//                             break;
+//                         token = strtok(line, ":");
+//                         if (strcmp(token, "starty") == 0)
+//                             game->room[i][j].starty = atoi(strtok(NULL, "\n"));
+//                         else if (strcmp(token, "startx") == 0)
+//                             game->room[i][j].startx = atoi(strtok(NULL, "\n"));
+//                         else if (strcmp(token, "height") == 0)
+//                             game->room[i][j].height = atoi(strtok(NULL, "\n"));
+//                         else if (strcmp(token, "width") == 0)
+//                             game->room[i][j].width = atoi(strtok(NULL, "\n"));
+//                         else if (strcmp(token, "door_number") == 0)
+//                         {
+//                             game->room[i][j].door_number = atoi(strtok(NULL, "\n"));
+//                             for (int h = 0; h < game->room[i][j].door_number; h++)
+//                             {
+//                                 fgets(line, 500, file);
+//                                 game->room[i][j].door[h][0] = atoi(strtok(line, " "));
+//                                 game->room[i][j].door[h][1] = atoi(strtok(NULL, "\n"));
+//                                 fgets(line, 500, file);
+//                                 game->room[i][j].door_side[h] = atoi(strtok(NULL, "\n");
+//                             }
+//                         }
+//                         else if (strcmp(token, "show") == 0)
+//                             game->room[i][j].show = atoi(strtok(NULL, "\n"));
+//                         else if (strcmp(token, "door_password") == 0)
+//                             game->room[i][j].door_password = atoi(strtok(NULL, "\n"));
+//                         else if (strcmp(token, "change_door_password") == 0)
+//                             game->room[i][j].change_door_password = atoi(strtok(NULL, "\n"));
+//                         else if (strcmp(token, "theme") == 0)
+//                             strcpy(game->room[i][j].theme, strtok(NULL, "\n"));
+//                         else if (strcmp(token, "enemy_exist") == 0)
+//                         {
+//                             game->room[i][j].enemy.exist = atoi(strtok(NULL, "\n"));
+//                             if (game->room[i][j].enemy.exist)
+//                             {
+//                                 while (fgets(line, 500, file))
+//                                 {
+//                                     if (strcmp(line, "\n") == 0)
+//                                         break;
+//                                     token = strtok(line, ":");
+//                                     if (strcmp(token, "enemy_char") == 0)
+//                                         game->room[i][j].enemy.enemy_char = strtok(NULL, "\n")[0];
+//                                     else if (strcmp(token, "enemy_name") == 0)
+//                                         strcpy(game->room[i][j].enemy.enemy_name, strtok(NULL, "\n"));
+//                                     else if (strcmp(token, "damage") == 0)
+//                                         game->room[i][j].enemy.damage = atoi(strtok(NULL, "\n"));
+//                                     else if (strcmp(token, "mov_left") == 0)
+//                                         game->room[i][j].enemy.mov_left = atoi(strtok(NULL, "\n"));
+//                                     else if (strcmp(token, "loc") == 0)
+//                                     {
+//                                         game->room[i][j].enemy.loc[0] = atoi(strtok(NULL, " "));
+//                                         game->room[i][j].enemy.loc[1] = atoi(strtok(NULL, "\n"));
+//                                     }
+//                                     else if (strcmp(token, "health") == 0)
+//                                         game->room[i][j].enemy.health = atoi(strtok(NULL, "\n"));
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//         else if (strcmp(token, "treasure_room") == 0)
+//         {
+//             while (fgets(line, 500, file))
+//             {
+//                 if (strcmp(line, "\n") == 0)
+//                     break;
+//                 token = strtok(line, ":");
+//                 if (strcmp(token, "starty") == 0)
+//                     game->treasure_room.starty = atoi(strtok(NULL, "\n"));
+//                 else if (strcmp(token, "startx") == 0)
+//                     game->treasure_room.startx = atoi(strtok(NULL, "\n"));
+//                 else if (strcmp(token, "height") == 0)
+//                     game->treasure_room.height = atoi(strtok(NULL, "\n"));
+//                 else if (strcmp(token, "width") == 0)
+//                     game->treasure_room.width = atoi(strtok(NULL, "\n"));
+//                 else if (strcmp(token, "show") == 0)
+//                     game->treasure_room.show = atoi(strtok(NULL, "\n"));
+//                 else if (strcmp(token, "theme") == 0)
+//                     strcpy(game->treasure_room.theme, strtok(NULL, "\n"));
+//             }
+//         }
+//         else if (strcmp(token, "all_enemy_number") == 0)
+//             game->all_enemy_number = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "treasure_enemy_number") == 0)
+//             game->treasure_enemy_number = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "enemy_char") == 0)
+//         {
+//             for (int i = 0; i < game->treasure_enemy_number; i++)
+//             {
+//                 while (fgets(line, 500, file))
+//                 {
+//                     if (strcmp(line, "\n") == 0)
+//                         break;
+//                     token = strtok(line, ":");
+//                     if (strcmp(token, "enemy_char") == 0)
+//                         game->treasure_enemy[i].enemy_char = strtok(NULL, "\n")[0];
+//                     else if (strcmp(token, "enemy_name") == 0)
+//                         strcpy(game->treasure_enemy[i].enemy_name, strtok(NULL, "\n"));
+//                     else if (strcmp(token, "damage") == 0)
+//                         game->treasure_enemy[i].damage = atoi(strtok(NULL, "\n"));
+//                     else if (strcmp(token, "mov_left") == 0)
+//                         game->treasure_enemy[i].mov_left = atoi(strtok(NULL, "\n"));
+//                     else if (strcmp(token, "loc") == 0)
+//                     {
+//                         game->treasure_enemy[i].loc[0] = atoi(strtok(NULL, " "));
+//                         game->treasure_enemy[i].loc[1] = atoi(strtok(NULL, "\n"));
+//                     }
+//                     else if (strcmp(token, "health") == 0)
+//                         game->treasure_enemy[i].health = atoi(strtok(NULL, "\n"));
+//                 }
+//             }
+//         }
+//         else if (strcmp(token, "floor_number") == 0)
+//             floor_number = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "health") == 0)
+//             hero->health = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "master_key_number") == 0)
+//             hero->master_key_number = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "broken_key_number") == 0)
+//             hero->broken_key_number = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "x") == 0)
+//             hero->x = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "y") == 0)
+//             hero->y = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "mace_number") == 0)
+//             hero->mace_number = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "dagger_number") == 0)
+//             hero->dagger_number = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "sword_number") == 0)
+//             hero->sword_number = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "magic_wand_number") == 0)
+//             hero->magic_wand_number = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "normal_arrow_number") == 0)
+//             hero->normal_arrow_number = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "health_spell_number") == 0)
+//             hero->health_spell_number = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "speed_spell_number") == 0)
+//             hero->speed_spell_number = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "damage_spell_number") == 0)
+//             hero->damage_spell_number = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "regular_food_number") == 0)
+//             hero->regular_food_number = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "spoiled_food_number") == 0)
+//             hero->spoiled_food_number = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "excellent_food_number") == 0)
+//             hero->excellent_food_number = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "magic_food_number") == 0)
+//             hero->magic_food_number = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "weapon") == 0)
+//             hero->weapon = strtok(NULL, "\n")[0];
+//         else if (strcmp(token, "step") == 0)
+//             hero->step = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "health_step") == 0)
+//             hero->health_step = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "damage_step") == 0)
+//             hero->damage_step = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "speed_step") == 0)
+//             hero->speed_step = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "hunger") == 0)
+//             hero->hunger = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "score") == 0)
+//             hero->score = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "gold") == 0)
+//             hero->gold = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "this_room_number") == 0)
+//         {
+//             for (int i = 0; i < 4; i++)
+//             {
+//                 fgets(line, 500, file);
+//                 this_room_number[i] = atoi(strtok(line, "\n"));
+//             }
+//         }
+//         else if (strcmp(token, "show_map") == 0)
+//             show_map = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "pick_up") == 0)
+//             pick_up = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "last_shot_dir") == 0)
+//             last_shot_dir = atoi(strtok(NULL, "\n"));
+//         else if (strcmp(token, "first_step") == 0)
+//             first_step = atoi(strtok(NULL, "\n"));
+//     }
+//     fclose(file);
+//     if (strcmp(hero_color, "Red") == 0)
+//         hero_deafualt_color = red_color;
+//     else if (strcmp(hero_color, "Green") == 0)
+//         hero_deafualt_color = green_color;
+//     else if (strcmp(hero_color, "Yellow") == 0)
+//         hero_deafualt_color = yellow_color;
+//     else if (strcmp(hero_color, "Blue") == 0)
+//         hero_deafualt_color = blue_color;
+//     else if (strcmp(hero_color, "White") == 0)
+//         hero_deafualt_color = white_color;
+//     int x, y;
+//     getmaxyx(stdscr, y, x);
+//     getmaxyx(stdscr, terminal_y_size, terminal_x_size);
+//     startx_map_draw = (x - map_width * 2) / 2;
+//     starty_map_draw = (y - map_height) / 2;
+//     message_row = starty_map_draw / 6;
+//     for (int i = 0; i < 10; i++)
+//         is_message[i] = 0;
+//     clear();
+//     refresh();
+//     game_is_running = 1;
+//     draw_map(game, hero);
+//     run_game(game, hero);
+//     show_message("Game loaded!", game, hero);
+// }
+
+void load_game(game_struct *game, hero_struct *hero)
+{
+    // new_game(game, hero, 0);
+    char file_loc[100];
+    sprintf(file_loc, "saves/%s.txt", user_username);
+    FILE *file = fopen(file_loc, "r");
+    char line[500];
+    FILE *out = fopen("saves/out.txt", "w");
+
+    while (fgets(line, 500, file))
+    {
+        fprintf(out, line);
+        if (strcmp(line, "end") == 0)
+            break;
+        char *token = strtok(line, ":");
+        if (strcmp(token, "difficulty") == 0)
+            difficulty = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "hero_color") == 0)
+            strcpy(hero_color, strtok(NULL, "\n"));
+        else if (strcmp(token, "map\n") == 0)
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                for (int j = 0; j < map_height; j++)
+                {
+                    fgets(line, 500, file);
+                    fprintf(out, line);
+                    for (int h = 0; h < map_width; h++)
+                        game->map[i][j][h] = line[h];
+                }
+                fgets(line, 500, file);
+                fprintf(out, line);
+            }
+        }
+        else if (strcmp(token, "show_map\n") == 0)
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                for (int j = 0; j < map_height; j++)
+                {
+                    fgets(line, 500, file);
+                    fprintf(out, line);
+                    for (int h = 0; h < map_width; h++)
+                        game->show_map[i][j][h] = line[h];
+                }
+                fgets(line, 500, file);
+                fprintf(out, line);
+            }
+        }
+        else if (strcmp(token, "under_weapon\n") == 0)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                for (int j = 0; j < map_height; j++)
+                {
+                    fgets(line, 500, file);
+                    fprintf(out, line);
+                    for (int h = 0; h < map_width; h++)
+                        game->under_weapon[i][j][h] = line[h];
+                }
+                fgets(line, 500, file);
+                fprintf(out, line);
+            }
+        }
+        else if (strcmp(token, "room_number\n") == 0)
+        {
+            fgets(line, 500, file);
+            fprintf(out, line);
+            for (int i = 0; i < 4; i++)
+                game->room_number[i] = atoi(strtok(line, " "));
+        }
+        else if (strcmp(token, "room\n") == 0)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                for (int j = 0; j < game->room_number[i]; j++)
+                {
+                    fgets(line, 500, file);
+                    fprintf(out, line);
+                    while (fgets(line, 500, file))
+                    {
+                        fprintf(out, line);
+                        if (strcmp(line, "\n") == 0)
+                            break;
+                        token = strtok(line, ":");
+                        if (strcmp(token, "starty") == 0)
+                            game->room[i][j].starty = atoi(strtok(NULL, "\n"));
+                        else if (strcmp(token, "startx") == 0)
+                            game->room[i][j].startx = atoi(strtok(NULL, "\n"));
+                        else if (strcmp(token, "height") == 0)
+                            game->room[i][j].height = atoi(strtok(NULL, "\n"));
+                        else if (strcmp(token, "width") == 0)
+                            game->room[i][j].width = atoi(strtok(NULL, "\n"));
+                        else if (strcmp(token, "door_number\n") == 0)
+                        {
+                            game->room[i][j].door_number = atoi(strtok(NULL, "\n"));
+                            for (int h = 0; h < game->room[i][j].door_number; h++)
+                            {
+                                fgets(line, 500, file);
+                                fprintf(out, line);
+                                game->room[i][j].door[h][0] = atoi(strtok(line, " "));
+                                game->room[i][j].door[h][1] = atoi(strtok(NULL, "\n"));
+                                fgets(line, 500, file);
+                                fprintf(out, line);
+                                game->room[i][j].door_side[h] = atoi(strtok(NULL, "\n"));
+                            }
+                        }
+                        else if (strcmp(token, "show") == 0)
+                            game->room[i][j].show = atoi(strtok(NULL, "\n"));
+                        else if (strcmp(token, "door_password") == 0)
+                            game->room[i][j].door_password = atoi(strtok(NULL, "\n"));
+                        else if (strcmp(token, "change_door_password") == 0)
+                            game->room[i][j].change_door_password = atoi(strtok(NULL, "\n"));
+                        else if (strcmp(token, "theme") == 0)
+                            strcpy(game->room[i][j].theme, strtok(NULL, "\n"));
+                        else if (strcmp(token, "enemy_exist") == 0)
+                        {
+                            game->room[i][j].enemy.exist = atoi(strtok(NULL, "\n"));
+                            if (game->room[i][j].enemy.exist)
+                            {
+                                while (fgets(line, 500, file))
+                                {
+                                    fprintf(out, line);
+                                    if (strcmp(line, "\n") == 0)
+                                        break;
+                                    token = strtok(line, ":");
+                                    if (strcmp(token, "enemy_char") == 0)
+                                        game->room[i][j].enemy.enemy_char = strtok(NULL, "\n")[0];
+                                    else if (strcmp(token, "enemy_name") == 0)
+                                        strcpy(game->room[i][j].enemy.enemy_name, strtok(NULL, "\n"));
+                                    else if (strcmp(token, "damage") == 0)
+                                        game->room[i][j].enemy.damage = atoi(strtok(NULL, "\n"));
+                                    else if (strcmp(token, "mov_left") == 0)
+                                        game->room[i][j].enemy.mov_left = atoi(strtok(NULL, "\n"));
+                                    else if (strcmp(token, "loc") == 0)
+                                    {
+                                        game->room[i][j].enemy.loc[0] = atoi(strtok(NULL, " "));
+                                        game->room[i][j].enemy.loc[1] = atoi(strtok(NULL, "\n"));
+                                    }
+                                    else if (strcmp(token, "health") == 0)
+                                        game->room[i][j].enemy.health = atoi(strtok(NULL, "\n"));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        else if (strcmp(token, "treasure_room\n") == 0)
+        {
+            while (fgets(line, 500, file))
+            {
+                fprintf(out, line);
+                if (strcmp(line, "\n") == 0)
+                    break;
+                token = strtok(line, ":");
+                if (strcmp(token, "starty") == 0)
+                    game->treasure_room.starty = atoi(strtok(NULL, "\n"));
+                else if (strcmp(token, "startx") == 0)
+                    game->treasure_room.startx = atoi(strtok(NULL, "\n"));
+                else if (strcmp(token, "height") == 0)
+                    game->treasure_room.height = atoi(strtok(NULL, "\n"));
+                else if (strcmp(token, "width") == 0)
+                    game->treasure_room.width = atoi(strtok(NULL, "\n"));
+                else if (strcmp(token, "show") == 0)
+                    game->treasure_room.show = atoi(strtok(NULL, "\n"));
+                else if (strcmp(token, "theme") == 0)
+                    strcpy(game->treasure_room.theme, strtok(NULL, "\n"));
+            }
+        }
+        else if (strcmp(token, "all_enemy_number") == 0)
+            game->all_enemy_number = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "treasure_enemy_number") == 0)
+            game->treasure_enemy_number = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "treasure_enemy\n") == 0)
+        {
+            for (int i = 0; i < game->treasure_enemy_number; i++)
+            {
+                while (fgets(line, 500, file))
+                {
+                    fprintf(out, line);
+                    if (strcmp(line, "\n") == 0)
+                        break;
+                    token = strtok(line, ":");
+                    if (strcmp(token, "enemy_char") == 0)
+                        game->treasure_enemy[i].enemy_char = strtok(NULL, "\n")[0];
+                    else if (strcmp(token, "enemy_name") == 0)
+                        strcpy(game->treasure_enemy[i].enemy_name, strtok(NULL, "\n"));
+                    else if (strcmp(token, "damage") == 0)
+                        game->treasure_enemy[i].damage = atoi(strtok(NULL, "\n"));
+                    else if (strcmp(token, "mov_left") == 0)
+                        game->treasure_enemy[i].mov_left = atoi(strtok(NULL, "\n"));
+                    else if (strcmp(token, "loc") == 0)
+                    {
+                        game->treasure_enemy[i].loc[0] = atoi(strtok(NULL, " "));
+                        game->treasure_enemy[i].loc[1] = atoi(strtok(NULL, "\n"));
+                    }
+                    else if (strcmp(token, "health") == 0)
+                        game->treasure_enemy[i].health = atoi(strtok(NULL, "\n"));
+                }
+            }
+        }
+        else if (strcmp(token, "floor_number") == 0)
+            floor_number = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "health") == 0)
+            hero->health = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "master_key_number") == 0)
+            hero->master_key_number = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "broken_key_number") == 0)
+            hero->broken_key_number = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "x") == 0)
+            hero->x = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "y") == 0)
+            hero->y = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "mace_number") == 0)
+            hero->mace_number = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "dagger_number") == 0)
+            hero->dagger_number = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "sword_number") == 0)
+            hero->sword_number = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "magic_wand_number") == 0)
+            hero->magic_wand_number = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "normal_arrow_number") == 0)
+            hero->normal_arrow_number = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "health_spell_number") == 0)
+            hero->health_spell_number = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "speed_spell_number") == 0)
+            hero->speed_spell_number = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "damage_spell_number") == 0)
+            hero->damage_spell_number = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "regular_food_number") == 0)
+            hero->regular_food_number = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "spoiled_food_number") == 0)
+            hero->spoiled_food_number = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "excellent_food_number") == 0)
+            hero->excellent_food_number = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "magic_food_number") == 0)
+            hero->magic_food_number = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "weapon") == 0)
+            hero->weapon = strtok(NULL, "\n")[0];
+        else if (strcmp(token, "step") == 0)
+            hero->step = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "health_step") == 0)
+            hero->health_step = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "damage_step") == 0)
+            hero->damage_step = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "speed_step") == 0)
+            hero->speed_step = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "hunger") == 0)
+            hero->hunger = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "score") == 0)
+            hero->score = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "gold") == 0)
+            hero->gold = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "this_room_number\n") == 0)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                fgets(line, 500, file);
+                fprintf(out, line);
+                this_room_number[i] = atoi(strtok(line, "\n"));
+            }
+        }
+        else if (strcmp(token, "show_map") == 0)
+            show_map = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "pick_up") == 0)
+            pick_up = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "last_shot_dir") == 0)
+            last_shot_dir = atoi(strtok(NULL, "\n"));
+        else if (strcmp(token, "first_step") == 0)
+            first_step = atoi(strtok(NULL, "\n"));
+    }
+
+    fclose(file);
+    fclose(out);
+    FILE *test = fopen("saves/health.txt", "r");
+    line[500];
+    fgets(line, 500, test);
+    char *token = strtok(line, ":");
+    if (strcmp(token, "healtha") == 0)
+        hero->health = atoi(strtok(NULL, "\n"));
+    fclose(test);
+
+    if (strcmp(hero_color, "Red") == 0)
+        hero_deafualt_color = red_color;
+    else if (strcmp(hero_color, "Green") == 0)
+        hero_deafualt_color = green_color;
+    else if (strcmp(hero_color, "Yellow") == 0)
+        hero_deafualt_color = yellow_color;
+    else if (strcmp(hero_color, "Blue") == 0)
+        hero_deafualt_color = blue_color;
+    else if (strcmp(hero_color, "White") == 0)
+        hero_deafualt_color = white_color;
+
+    int x, y;
+    getmaxyx(stdscr, y, x);
+    getmaxyx(stdscr, terminal_y_size, terminal_x_size);
+    startx_map_draw = (x - map_width * 2) / 2;
+    starty_map_draw = (y - map_height) / 2;
+    message_row = starty_map_draw / 6;
+
+    for (int i = 0; i < 10; i++)
+        is_message[i] = 0;
+
+    clear();
+    refresh();
+    game_is_running = 1;
+    // strcpy(user_username, "output");
+    // save_game(game, hero);
+    show_message("Game loaded!", game, hero);
+    char health[100];
+    sprintf(health, "%d %d %d %d %d %d", game->room[0][0].show, game->room[0][1].show, game->room[0][2].show, game->room[0][3].show, game->room[0][4].show, game->room[0][5].show);
+    show_message(health, game, hero);
+    draw_map(game, hero);
+    run_game(game, hero);
+}
+
 void make_map(game_struct *game)
 {
     for (int fl_number = 0; fl_number < 4; fl_number++)
@@ -1820,6 +2621,7 @@ void make_map(game_struct *game)
                 game->room[fl_number][i].height = room_height;
                 game->room[fl_number][i].width = room_width;
                 game->room[fl_number][i].door_password = 0;
+                game->room[fl_number][i].change_door_password = 0;
                 if (i == 0)
                     game->room[fl_number][i].show = 1;
                 else
@@ -1963,6 +2765,7 @@ void make_map(game_struct *game)
     game->treasure_room.width = treasure_room_width;
     game->treasure_room.startx = (map_width - treasure_room_width) / 2;
     game->treasure_room.starty = (map_height - treasure_room_height) / 2;
+    game->treasure_room.show = 1;
     strcpy(game->treasure_room.theme, treasure);
     for (int j = 1; j < game->treasure_room.height - 1; j++)
         for (int h = 1; h < game->treasure_room.width - 1; h++)
@@ -2380,35 +3183,35 @@ void run_game(game_struct *game, hero_struct *hero)
             }
             else if (x == 'f')
             {
-                preesed_f = 1;
-                // if (preesed_f)
-                //     preesed_f = 0;
-                // else
-                //     preesed_f = 1;
+                // preesed_f = 1;
+                if (preesed_f)
+                    preesed_f = 0;
+                else
+                    preesed_f = 1;
             }
-            // else if (x == 'n')
-            // {
-            //     new_game();
-            //     break;
-            // }
-            // else if (x == 'p' && floor_number < 4)
-            // {
-            //     floor_number++;
-            //     mvprintw(0, 0, "%d", floor_number);
-            //     if (floor_number == 4)
-            //     {
+            else if (x == 'n')
+            {
+                new_game();
+                break;
+            }
+            else if (x == 'p' && floor_number < 4)
+            {
+                floor_number++;
+                mvprintw(0, 0, "%d", floor_number);
+                if (floor_number == 4)
+                {
 
-            //         hero->x = game->treasure_room.startx + game->treasure_room.width / 2;
-            //         hero->y = game->treasure_room.starty + game->treasure_room.height / 2;
-            //     }
-            //     draw_map(game, hero);
-            // }
-            // else if (x == 'o' && floor_number > 0)
-            // {
-            //     floor_number--;
-            //     mvprintw(0, 0, "%d", floor_number);
-            //     draw_map(game, hero);
-            // }
+                    hero->x = game->treasure_room.startx + game->treasure_room.width / 2;
+                    hero->y = game->treasure_room.starty + game->treasure_room.height / 2;
+                }
+                draw_map(game, hero);
+            }
+            else if (x == 'o' && floor_number > 0)
+            {
+                floor_number--;
+                mvprintw(0, 0, "%d", floor_number);
+                draw_map(game, hero);
+            }
             else if (x == 'm')
             {
                 if (show_map)
@@ -2464,6 +3267,10 @@ void run_game(game_struct *game, hero_struct *hero)
                 food_menu(game, hero);
                 draw_map(game, hero);
             }
+            else if (x == 'l')
+            {
+                save_game(game, hero);
+            }
             else if (x == 'q')
                 break;
         }
@@ -2507,31 +3314,31 @@ void set_diffi()
         trap_probability1000 = 15;
         spell_probability1000 = 10;
         food_probability1000 = 5;
-        enemy_probability=60;
-        weapon_percentage1000=5;
+        enemy_probability = 60;
+        weapon_percentage1000 = 5;
     }
     else if (difficulty == 2)
     {
         trap_probability1000 = 20;
         spell_probability1000 = 15;
         food_probability1000 = 4;
-        enemy_probability=70;
-        weapon_percentage1000=6;
+        enemy_probability = 70;
+        weapon_percentage1000 = 6;
     }
     else if (difficulty == 3)
     {
         trap_probability1000 = 25;
         spell_probability1000 = 15;
         food_probability1000 = 3;
-        enemy_probability=80;
-        weapon_percentage1000=7;
+        enemy_probability = 80;
+        weapon_percentage1000 = 7;
     }
-    
 }
 
-void new_game()
+void new_game(game_struct *game, hero_struct *hero, int new)
 {
-    set_diffi();
+    if (new)
+        set_diffi();
     if (strcmp(hero_color, "Red") == 0)
         hero_deafualt_color = red_color;
     else if (strcmp(hero_color, "Green") == 0)
@@ -2543,15 +3350,15 @@ void new_game()
     else if (strcmp(hero_color, "White") == 0)
         hero_deafualt_color = white_color;
 
-    game_struct game;
+    // game_struct game;
 
     for (int i = 0; i < 5; i++)
         for (int j = 0; j < map_height; j++)
             for (int h = 0; h < map_width; h++)
             {
-                game.map[i][j][h] = nothing;
-                game.show_map[i][j][h] = nothing;
-                game.under_weapon[i][j][h] = nothing;
+                game->map[i][j][h] = nothing;
+                game->show_map[i][j][h] = nothing;
+                game->under_weapon[i][j][h] = nothing;
             }
     floor_number = 0;
     game_is_running = 1;
@@ -2563,37 +3370,39 @@ void new_game()
     message_row = starty_map_draw / 6;
     clear();
     refresh();
-    make_map(&game);
-    hero_struct hero;
-    hero.health = hero_health;
-    hero.gold = 0;
-    hero.master_key_number = 0;
-    hero.broken_key_number = 0;
-    hero.dagger_number = 0;
-    hero.sword_number = 0;
-    hero.mace_number = 1;
-    hero.magic_wand_number = 0;
-    hero.normal_arrow_number = 0;
-    hero.weapon = mace;
-    hero.health_spell_number = 0;
-    hero.damage_spell_number = 0;
-    hero.speed_spell_number = 0;
-    hero.step = 0;
-    hero.health_step = 0;
-    hero.damage_step = 0;
-    hero.speed_step = 0;
-    hero.regular_food_number = 0;
-    hero.spoiled_food_number = 0;
-    hero.excellent_food_number = 0;
-    hero.magic_food_number = 0;
-    hero.hunger = 0;
+    if (new)
+        make_map(game);
+    // hero_struct hero;
+    hero->health = hero_health;
+    hero->gold = 0;
+    hero->master_key_number = 0;
+    hero->broken_key_number = 0;
+    hero->dagger_number = 0;
+    hero->sword_number = 0;
+    hero->mace_number = 1;
+    hero->magic_wand_number = 0;
+    hero->normal_arrow_number = 0;
+    hero->weapon = mace;
+    hero->health_spell_number = 0;
+    hero->damage_spell_number = 0;
+    hero->speed_spell_number = 0;
+    hero->step = 0;
+    hero->health_step = 0;
+    hero->damage_step = 0;
+    hero->speed_step = 0;
+    hero->regular_food_number = 0;
+    hero->spoiled_food_number = 0;
+    hero->excellent_food_number = 0;
+    hero->magic_food_number = 0;
+    hero->hunger = 0;
 
     this_room_number[0] = 0;
-    hero.x = game.room[floor_number][0].startx + random_number(1, game.room[floor_number][0].width - 2);
-    hero.y = game.room[floor_number][0].starty + random_number(1, game.room[floor_number][0].height - 2);
+    hero->x = game->room[floor_number][0].startx + random_number(1, game->room[floor_number][0].width - 2);
+    hero->y = game->room[floor_number][0].starty + random_number(1, game->room[floor_number][0].height - 2);
 
-    draw_map(&game, &hero);
-    run_game(&game, &hero);
+    draw_map(game, hero);
+    if (new)
+        run_game(game, hero);
 }
 
 typedef struct textbox
@@ -2616,6 +3425,95 @@ void create_textbox(int starty, int startx, int width, int height, const char *l
     wrefresh(textbox_win);
     if (!count)
         move(starty + 1, startx + 1);
+}
+
+typedef struct
+{
+    char username[30];
+    char password[30];
+    char email[50];
+    int gold, score, number_of_games;
+} user;
+
+void leaderboard()
+{
+    FILE *file = fopen("data.txt", "r");
+    user users[100];
+    int order[100];
+    char line[200];
+    int number = 0;
+    while (fgets(line, sizeof(line), file))
+    {
+        if (line[0] == '\n')
+            break;
+        sscanf(line, "%s %s %s %d %d %d", users[number].username, users[number].password, users[number].email, &users[number].score, &users[number].gold, &users[number].number_of_games);
+        order[number] = number;
+        number++;
+    }
+    fclose(file);
+    // sort by score
+    for (int i = 0; i < number; i++)
+        for (int j = i + 1; j < number; j++)
+            if (users[order[i]].score < users[order[j]].score)
+            {
+                int save = order[i];
+                order[i] = order[j];
+                order[j] = save;
+            }
+    // show leaderboard
+    clear();
+    int x, y;
+    getmaxyx(stdscr, y, x);
+    int starty = (y - number) / 2;
+    int startx = x / 2;
+    mvprintw(starty - 2, (x - strlen("Leaderboard")) / 2, "Leaderboard");
+    x /= 2;
+    int interval = 20;
+    int usercol = x - 3 * interval, scorecol = x - interval, goldcol = x + interval, gamecol = x + 3 * interval;
+    mvprintw(starty, usercol, "Username");
+    mvprintw(starty, scorecol, "Score");
+    mvprintw(starty, goldcol, "Gold");
+    mvprintw(starty, gamecol, "Games");
+    for (int i = 0; i < number; i++)
+    {
+        if(i==0)
+        {
+            attron(A_BOLD);
+            attron(COLOR_PAIR(red_color));
+            mvprintw(starty + i+1, usercol-strlen("Champion")-5, "%s %lc", "Champion",utreasure_char);
+        }
+        else if(i==1)
+        {
+            attron(A_BOLD);
+            attron(COLOR_PAIR(blue_color));
+            mvprintw(starty + i+1, usercol-strlen("Runner-up")-5, "%s %lc", "Runner-up",L'🥈');
+        }
+        else if(i==2)
+        {
+            attron(A_BOLD);
+            attron(COLOR_PAIR(yellow_color));
+            mvprintw(starty + i+1, usercol-strlen("Third_place")-5, "%s %lc", "Third_place",L'🥉');
+        }
+        if(strcmp(users[order[i]].username,user_username)==0)
+        {
+            attron(A_BOLD);
+            attron(COLOR_PAIR(green_color));
+        }
+        mvprintw(starty + i+1, usercol, "%d.  %s", i + 1, users[order[i]].username);
+        mvprintw(starty + i+1, scorecol, "%d", users[order[i]].score);
+        mvprintw(starty + i+1, goldcol, "%d", users[order[i]].gold);
+        mvprintw(starty + i+1, gamecol, "%d", users[order[i]].number_of_games);
+        attroff(A_BOLD);
+        attroff(COLOR_PAIR(green_color));
+        attron(COLOR_PAIR(main_color));
+    }
+    // mvprintw(starty + number + 1, (x - strlen("Press any key to continue")) / 2, "Press any key to continue");
+    while (1)
+    {
+        int c = getch();
+        if (c == KEY_LEFT)
+            break;
+    }
 }
 
 void print_error(int starty, int startx, const char *error)
@@ -3075,7 +3973,7 @@ void game_menu()
             attron(COLOR_PAIR(2));
         else
             attron(COLOR_PAIR(1));
-        if ((strcmp(menu_items[i], "Profile") == 0 || strcmp(menu_items[i], "Load Game") == 0) && strcmp(user_username, "guest") == 0)
+        if ((strcmp(menu_items[i], "Profile") == 0) && strcmp(user_username, "guest") == 0)
             attron(COLOR_PAIR(3));
         mvprintw(y / 2 + 2 * (i - menu_items_count / 2), (x - strlen(menu_items[i])) / 2, "%s", menu_items[i]);
     }
@@ -3094,14 +3992,14 @@ void game_menu_input()
             if (x == KEY_UP && selected_menu > 0)
             {
                 selected_menu--;
-                if ((selected_menu == 1 || selected_menu == 4) && strcmp(user_username, "guest") == 0)
+                if ((selected_menu == 4) && strcmp(user_username, "guest") == 0)
                     selected_menu--;
                 game_menu();
             }
             else if (x == KEY_DOWN && selected_menu < menu_items_count - 1)
             {
                 selected_menu++;
-                if ((selected_menu == 1 || selected_menu == 4) && strcmp(user_username, "guest") == 0)
+                if ((selected_menu == 4) && strcmp(user_username, "guest") == 0)
                     selected_menu++;
                 game_menu();
             }
@@ -3111,17 +4009,22 @@ void game_menu_input()
                     break;
                 else if (strcmp(menu_items[selected_menu], "New Game") == 0)
                 {
+                    hero_struct hero;
+                    game_struct game;
                     clear();
-                    new_game();
-                    game_menu();
+                    new_game(&game, &hero, 1);
+                    // game_menu();
                 }
                 else if (strcmp(menu_items[selected_menu], "Load Game") == 0)
                 {
-                    // Load Game();
+                    hero_struct hero2;
+                    game_struct game2;
+                    load_game(&game2, &hero2);
                 }
                 else if (strcmp(menu_items[selected_menu], "Leaderboard") == 0)
                 {
-                    // leaderboard();
+                    leaderboard();
+                    // break;
                 }
                 else if (strcmp(menu_items[selected_menu], "Profile") == 0)
                 {
@@ -3131,8 +4034,9 @@ void game_menu_input()
                 {
                     settings_menu();
                     settings_menu_input();
-                    game_menu();
+                    // game_menu();
                 }
+                game_menu();
             }
             else if (x == KEY_LEFT)
                 break;
